@@ -5,9 +5,12 @@ import org.springframework.stereotype.Controller;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.concurrent.CompletableFuture;
 
 @Controller
-public class BotController extends TelegramLongPollingBot {
+public class BotController extends TelegramLongPollingBot implements BotService{
 
     @Override
     public String getBotUsername() {
@@ -23,6 +26,8 @@ public class BotController extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
+        System.out.println(update);
+
         if (update.getMessage().getText().equals("/start")) {
 
             SendMessage sendMessage = new SendMessage();
@@ -33,5 +38,20 @@ public class BotController extends TelegramLongPollingBot {
 
             execute(sendMessage);
         }
+    }
+
+    @Override
+    public void sendText(String text, String chatId) {
+        CompletableFuture.runAsync(() -> {
+            SendMessage sendMessage = new SendMessage(chatId, text);
+            try {
+                if (text.length() > 4096) {
+                    sendMessage.setText(text.substring(0, 4096));
+                }
+                sendApiMethod(sendMessage);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }
